@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 
-const API_TOKEN = "4287ad07"
+const API_TOKEN = '4287ad07'
 const MOVIE_API = `http://www.omdbapi.com/?apikey=${API_TOKEN}`
 
 const useMovies = ({ searchValue, sort }) => {
@@ -11,21 +11,17 @@ const useMovies = ({ searchValue, sort }) => {
 
   const getMovies = useCallback(async (searchValue) => {
     setError(null)
-    if (searchValue === previousSearch.current)
-      return
+    if (searchValue === previousSearch.current) { return }
 
-    if (searchValue === '')
-      return setMovies([])
+    if (searchValue === '') { return setMovies([]) }
 
     try {
       setLoading(true)
       previousSearch.current = searchValue
       const response = await fetch(`${MOVIE_API}&s=${searchValue}`)
-      if (!response.ok)
-        throw new Error("Error fetching movies")
+      if (!response.ok) { throw new Error('Error fetching movies') }
       const data = await response.json()
-      if (!data.Search)
-        return setMovies([])
+      if (!data.Search) { return setMovies([]) }
       mapMovies(data.Search)
     } catch (error) {
       setError(error.message)
@@ -36,24 +32,16 @@ const useMovies = ({ searchValue, sort }) => {
 
   const mapMovies = (moviesArray) => {
     const mappedMovies = moviesArray.map((movie) => {
+      // if (movie.Poster === 'N/A') return null
       return {
         id: movie.imdbID,
         title: movie.Title,
         year: movie.Year,
-        poster: movie.Poster,
+        poster: movie.Poster === 'N/A' ? 'noPoster.png' : movie.Poster,
         type: movie.Type
       }
     })
-    addPlots(mappedMovies)
-  }
-
-  const addPlots = async (moviesArray) => {
-    const moviesWithPlots = await Promise.all(moviesArray.map(async (movie) => {
-      const response = await fetch(`${MOVIE_API}&i=${movie.id}`)
-      const data = await response.json()
-      return { ...movie, plot: data.Plot }
-    }))
-    setMovies(moviesWithPlots)
+    setMovies(mappedMovies)
   }
 
   const sortMovies = useMemo(() => {
@@ -65,6 +53,21 @@ const useMovies = ({ searchValue, sort }) => {
   return { movies: sortMovies, getMovies, loading, error, setError }
 }
 
-
+export const addInfo = async (movie) => {
+  const response = await fetch(`${MOVIE_API}&i=${movie.id}`)
+  const info = await response.json()
+  return {
+    id: info.imdbID,
+    title: info.Title,
+    year: info.Year,
+    poster: info.Poster,
+    type: info.Type,
+    genre: info.Genre,
+    director: info.Director,
+    writer: info.Writer,
+    actors: info.Actors,
+    plot: info.Plot
+  }
+}
 
 export default useMovies
