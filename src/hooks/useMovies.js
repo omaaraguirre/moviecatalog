@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 
 const API_TOKEN = '4287ad07'
-const MOVIE_API = `http://www.omdbapi.com/?apikey=${API_TOKEN}`
+const MOVIE_API = `https://www.omdbapi.com/?apikey=${API_TOKEN}`
 
 const useMovies = ({ searchValue, sort }) => {
   const [movies, setMovies] = useState([])
