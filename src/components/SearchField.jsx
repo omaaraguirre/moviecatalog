@@ -1,68 +1,38 @@
-import PropTypes from 'prop-types'
-import debounce from 'just-debounce-it'
-import { useCallback } from 'react'
+import { IconSearch, IconX } from '@tabler/icons-react'
+import useSearch from '../hooks/useSearch'
 
-const SearchField = ({ sort, setSort, searchValue, setSearchValue, getMovies }) => {
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    getMovies(searchValue)
+const SearchField = () => {
+  const { search, searchValue, setSearchValue } = useSearch()
+
+  const handleChange = e => {
+    setSearchValue(e.target.value)
+    const query = e.target.value
+    search(query)
   }
-
-  const handleChange = (e) => {
-    const { value } = e.target
-    setSearchValue(value)
-    debouncedGetMovies(value)
-  }
-
-  const debouncedGetMovies = useCallback(
-    debounce(searchValue => {
-      getMovies(searchValue)
-    }, 500), [getMovies]
-  )
 
   return (
-    <form
-      className='w-full md:max-w-5xl flex gap-3 text-black bg-white rounded-lg'
-      onSubmit={handleSubmit}
+    <label
+      className='flex items-center px-4 mt-5 mx-auto w-[min(90%,500px)] rounded-lg text-light focus-within:text-lighter bg-lighter/10 backdrop-blur-sm transition-all duration-300 group outline outline-transparent focus-within:outline-primary'
     >
       <input
         type='text'
-        className='w-full p-2 rounded-md focus:outline-none'
-        placeholder='Search movies...'
+        placeholder='Search...'
         value={searchValue}
         onChange={handleChange}
+        className='py-2 w-full font-comforta font-bold text-sm bg-transparent outline-none'
       />
-      <div className='flex items-center gap-1'>
-        <input
-          id='red-checkbox'
-          type='checkbox'
-          className='w-5 h-5 rounded border-red-600 cursor-pointer'
-          onChange={() => { setSort(!sort) }}
-          checked={sort}
-        />
-        <label
-          htmlFor='red-checkbox'
-          className='text-sm font-bold select-none cursor-pointer  text-blue-600'
-        >
-          Sort
-        </label>
-      </div>
       <button
-        type='submit'
-        className='material-icons text-white p-2 rounded-r-md bg-blue-600 hover:bg-blue-900 transition-colors duration-300 ease-in-out'
+        onClick={() => setSearchValue('')}
+        className='p-2 text-tertiary hover:text-primary transition-colors duration-300'
       >
-        search
+        <span className='sr-only'>Clear search</span>
+        <span className='hidden group-focus-within:inline'>
+          <IconX className='w-4 h-4 transition-all duration-300' />
+        </span>
       </button>
-    </form>
+      <IconSearch className='w-5 h-5 group-focus-within:text-primary transition-all duration-300' />
+    </label>
   )
-}
-
-SearchField.propTypes = {
-  sort: PropTypes.bool,
-  setSort: PropTypes.func,
-  searchValue: PropTypes.string,
-  setSearchValue: PropTypes.func,
-  getMovies: PropTypes.func
 }
 
 export default SearchField

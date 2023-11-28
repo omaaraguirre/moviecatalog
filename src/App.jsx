@@ -1,37 +1,50 @@
-import { useState } from 'react'
-import SearchField from './components/SearchField'
-import MoviesList from './components/MoviesList'
-import useMovies from './hooks/useMovies'
-import Spinner from './components/Spinner'
-import Alert from './components/Alert'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import 'slick-carousel/slick/slick.css'
+import 'slick-carousel/slick/slick-theme.css'
+import '@fontsource-variable/orbitron'
+import '@fontsource-variable/comfortaa'
+import MediaProvider from './context/MediaProvider'
+import Layout from './layout/Layout'
+import Movies from './pages/Movies'
+import MovieDetails from './pages/MovieDetails'
+import Shows from './pages/Shows'
+import ShowDetails from './pages/ShowDetails'
+import People from './pages/People'
+import PeopleDetails from './pages/PeopleDetails'
+import Search from './pages/Search'
+import NotFound from './pages/NotFound'
 
-function App () {
-  const [sort, setSort] = useState(false)
-  const [searchValue, setSearchValue] = useState('')
-  const { movies, getMovies, loading, error, setError } = useMovies({ searchValue, sort })
-
+const App = () => {
   return (
-    <main className='container mx-auto p-5 flex flex-col items-center gap-5 text-white'>
-      <h1 className='text-3xl font-bold'>MediaHub</h1>
-      <SearchField
-        searchValue={searchValue}
-        setSearchValue={setSearchValue}
-        getMovies={getMovies}
-        sort={sort}
-        setSort={setSort}
-      />
-      <h3 className='text-2xl'>Results</h3>
-      {
-        loading
-          ? <Spinner />
-          : (
-              movies.length === 0 && searchValue !== ''
-                ? <p className='text-center text-white/50'>No results found</p>
-                : <MoviesList movies={movies} />
-            )
-      }
-      {error && <Alert error={error} setError={setError} />}
-    </main>
+    <>
+      <BrowserRouter>
+        <MediaProvider>
+          <Routes>
+            <Route path='/' element={<Layout />}>
+              <Route path='movies'>
+                <Route index element={<Movies />} />
+                <Route path=':id' element={<MovieDetails />} />
+              </Route>
+              <Route path='tvshows'>
+                <Route index element={<Shows />} />
+                <Route path=':id' element={<ShowDetails />} />
+              </Route>
+              <Route path='people'>
+                <Route index element={<People />} />
+                <Route path=':id' element={<PeopleDetails />} />
+              </Route>
+              <Route path='search'>
+                <Route index element={<Search />} />
+              </Route>
+              <Route path='*' element={<NotFound />} />
+            </Route>
+          </Routes>
+        </MediaProvider>
+      </BrowserRouter>
+      <ToastContainer />
+    </>
   )
 }
 

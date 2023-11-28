@@ -1,72 +1,104 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import debounce from 'just-debounce-it'
+import { useCallback, useContext } from 'react'
+import { MediaContext } from '../context/MediaProvider'
+import { fetchMovieById, fetchMovies } from '../services/movies'
 
-const API_TOKEN = '4287ad07'
-const MOVIE_API = `https://www.omdbapi.com/?apikey=${API_TOKEN}`
+const useMovies = () => {
+  const { movie, setMovie, movies, setMovies } = useContext(MediaContext)
 
-const useMovies = ({ searchValue, sort }) => {
-  const [movies, setMovies] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
-  const previousSearch = useRef(searchValue)
-
-  const getMovies = useCallback(async (searchValue) => {
-    setError(null)
-    if (searchValue === previousSearch.current) { return }
-
-    if (searchValue === '') { return setMovies([]) }
-
-    try {
-      setLoading(true)
-      previousSearch.current = searchValue
-      const response = await fetch(`${MOVIE_API}&s=${searchValue}`)
-      if (!response.ok) { throw new Error('Error fetching movies') }
-      const data = await response.json()
-      if (!data.Search) { return setMovies([]) }
-      mapMovies(data.Search)
-    } catch (error) {
-      setError(error.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  const mapMovies = (moviesArray) => {
-    const mappedMovies = moviesArray.map((movie) => {
-      // if (movie.Poster === 'N/A') return null
-      return {
-        id: movie.imdbID,
-        title: movie.Title,
-        year: movie.Year,
-        poster: movie.Poster === 'N/A' ? 'noPoster.png' : movie.Poster,
-        type: movie.Type
-      }
+  const getMovies = async () => {
+    const movies = await fetchMovies()
+    setMovies({
+      popular: mapMovies(movies.popular),
+      nowPlaying: mapMovies(movies.nowPlaying),
+      topRated: mapMovies(movies.topRated),
+      upcoming: mapMovies(movies.upcoming)
     })
-    setMovies(mappedMovies)
+  }
+  const debouncedGetMovies = useCallback(
+    debounce(() => getMovies(), 500), []
+  )
+
+  const getMovieById = async id => {
+    const movie = await fetchMovieById(id)
+    setMovie(mapMovie(movie))
+  }
+  const debouncedGetMovieById = useCallback(
+    debounce(id => getMovieById(id), 500), []
+  )
+
+  const mapMovies = moviesArray => {
+    const mappedMovies = moviesArray
+      .filter(movie => movie.poster_path && movie.backdrop_path)
+      .map(movie => {
+        return {
+          id: movie.id,
+          title: movie.title,
+          original_title: movie.original_title,
+          year: movie.release_date.substring(0, 4),
+          genres: movie.genre_ids,
+          poster: `https://image.tmdb.org/t/p/w342${movie.poster_path}`
+        }
+      })
+    if (mappedMovies.length % 2 !== 0) mappedMovies.pop()
+    return mappedMovies
   }
 
-  const sortMovies = useMemo(() => {
-    return sort
-      ? [...movies].sort((a, b) => a.title.localeCompare(b.title))
-      : movies
-  }, [movies, sort])
+  const mapMovie = movie => {
+    return {
+      id: movie.id,
+      title: movie.title,
+      original_title: movie.original_title,
+      tagline: movie.tagline,
+      duration: movie.runtime,
+      year: movie.release_date.substring(0, 4),
+      genres: movie.genres,
+      plot: movie.overview,
+      similar: mapMovies(movie.similar),
+      videos: movie.videos
+        .filter(video => video.type === 'Teaser' || video.type === 'Trailer')
+        .map(video => {
+          return {
+            id: video.id,
+            name: video.name,
+            type: video.type,
+            thumbnail: `https://i.ytimg.com/vi_webp/${video.key}/sddefault.webp`,
+            embed: `https://www.youtube-nocookie.com/embed/${video.key}`,
+            url: `https://www.youtube.com/watch?v=${video.key}`
+          }
+        }),
+      backdrop: `https://image.tmdb.org/t/p/original${movie.backdrop_path}`,
+      production: movie.production_companies
+        .filter(company => company.logo_path)
+        .map(company => {
+          return {
+            id: company.id,
+            name: company.name,
+            logo_path: `https://image.tmdb.org/t/p/w154${company.logo_path}`
+          }
+        }),
+      cast: movie.cast
+        .filter(cast => cast.profile_path && cast.known_for_department === 'Acting')
+        .map(cast => {
+          return {
+            id: cast.id,
+            name: cast.name,
+            character: cast.character,
+            type: cast.known_for_department,
+            profile_path: `https://image.tmdb.org/t/p/w185${cast.profile_path}`
+          }
+        })
+    }
+  }
 
-  return { movies: sortMovies, getMovies, loading, error, setError }
-}
-
-export const addInfo = async (movie) => {
-  const response = await fetch(`${MOVIE_API}&i=${movie.id}`)
-  const info = await response.json()
   return {
-    id: info.imdbID,
-    title: info.Title,
-    year: info.Year,
-    poster: info.Poster,
-    type: info.Type,
-    genre: info.Genre,
-    director: info.Director,
-    writer: info.Writer,
-    actors: info.Actors,
-    plot: info.Plot
+    movie,
+    setMovie,
+    getMovieById: debouncedGetMovieById,
+    movies,
+    setMovies,
+    getMovies: debouncedGetMovies,
+    mapMovies
   }
 }
 
